@@ -1,0 +1,262 @@
+---
+title: "Descriptives Phoenix Data"
+output: pdf_document
+---
+
+Note: This section contains descriptive statistics for the Phoenix dataset that excludes observations before 2014. 
+
+Note: some of the code is taken from Andy Halterman's "Exploration of the Phoenix Event Data," available at https://s3.amazonaws.com/oeda/docs/code_example.pdf
+
+1. Required packages 
+```{r, warning=FALSE, error=FALSE}
+library(ggplot2)
+library(stringr)
+```
+
+2. Getting the data 
+```{r, warning=FALSE, error=FALSE}
+#I need to change this so that everybody can access the data through the web
+setwd("/Users/mariacristinaramos/Documents/MARIA CRISTINA/DUKE U/SEMESTER 3/Computational Sociology/DATA")
+
+load("Phoenix Data File 1.Rdata")
+load("Phoenix Data File 2.Rdata")
+
+phoenixdata<-rbind(finaldata_1,finaldata_2)
+
+#dropping all the cases before 2014
+summary(phoenixdata$Year)
+table(phoenixdata$Year)
+finaldata<-phoenixdata[phoenixdata$Year>=2014,]
+```
+
+3. Summary Stats and Column Descriptions
+
+```{r, warning=FALSE, error=FALSE}
+str(finaldata)
+```
+
+4. Descriptives by Single Variables
+
+4.1 Year
+
+- Number of Events by Year
+```{r, warning=FALSE, error=FALSE}
+table(finaldata$Year)
+eventsbyyear<-ggplot(data=finaldata, aes(x=Year)) + geom_bar(stat="bin", binwidth=1) + scale_x_continuous(breaks=seq(2014, 2015, 1)) + theme_classic()
+eventsbyyear
+```
+
+4.2 Actor counts
+
+*ActorFull -> includes all the three letter CAMEO codes strung together
+```{r, warning=FALSE, error=FALSE, echo=FALSE}
+unique(finaldata$SourceActorFull)
+length(unique(finaldata$SourceActorFull))
+```
+There are 12268 Source Actors
+
+```{r, warning=FALSE, error=FALSE, echo=FALSE}
+unique(finaldata$TargetActorFull)
+length(unique(finaldata$TargetActorFull))
+```
+There are 13233 Target Actors
+
+```{r, warning=FALSE, error=FALSE, echo=FALSE}
+uniquesourcesfull<-unique(finaldata$SourceActorFull)
+uniquetargetsfull<-unique(finaldata$TargetActorFull)
+sum(uniquesourcesfull %in% uniquetargetsfull)
+```
+There are 7815 Actors that have been Sources and Targets
+
+*ActorEntity breaks out the top-level code, which is usually a country code but can also be “IMG” for international militarized group, “IGO” for inter(national) governmental organizations, or “MNC” for multinational corporations.
+
+```{r, message=FALSE, warning=FALSE, error=FALSE}
+uniquesourcesentities<-unique(finaldata$SourceActorEntity)
+length(uniquesourcesentities)
+uniquetargetsentities<-unique(finaldata$TargetActorEntity)
+length(uniquetargetsentities)
+sum(uniquesourcesentities %in% uniquetargetsentities)
+```
+There are 206 entities. All entities have been sources and targets
+
+*ActorRole includes codes like “GOV”, “MED”, “EDU”, “MIL”
+
+```{r, message=FALSE, warning=FALSE, error=FALSE, echo=FALSE}
+uniquesourcesroles<-unique(finaldata$SourceActorRole)
+length(uniquesourcesroles)
+uniquetargetsroles<-unique(finaldata$TargetActorRole)
+length(uniquetargetsroles)
+sum(uniquesourcesroles %in% uniquetargetsroles)
+```
+There are 14 roles. All roles have been sources and targets. 
+
+- Count of events by Source role. (The first category is blank - sources that do not have a role) 
+
+```{r, message=FALSE, warning=FALSE, error=FALSE}
+table(finaldata$SourceActorRole)
+eventsbysourcerole<- ggplot(data=finaldata, aes(x=SourceActorRole)) + geom_bar(stat="bin", binwidth=1) + theme_classic()
+eventsbysourcerole
+```
+
+- Count of events by Target role. (The first category is blank - sources that do not have a role) 
+
+```{r, message=FALSE, warning=FALSE, error=FALSE}
+table(finaldata$TargetActorRole)
+eventsbytargetrole<-ggplot(data=finaldata, aes(x=TargetActorRole)) + geom_bar(stat="bin", binwidth=1) + theme_classic()
+eventsbytargetrole
+```
+
+*ActorAttribute includes modifiers, including “MOS”, “INS”, “ELI” (Muslim, insurgent, and elite).
+
+```{r, message=FALSE, warning=FALSE, error=FALSE}
+uniquesourcesattributes<-unique(finaldata$SourceActorAttribute)
+length(uniquesourcesattributes)
+uniquetargetsattributes<-unique(finaldata$TargetActorAttribute)
+length(uniquetargetsattributes)
+sum(uniquesourcesattributes %in% uniquetargetsattributes)
+```
+There are 2636 unique attributes that have been sources. There are 3153 unique attributes that have been targets. 1719 attributes have been both sources and targets.
+
+
+- Distribution of Source and Target Events by Actor (between Full Actors). Including only the top 30 Source Actors.   
+
+```{r, warning=FALSE, error=FALSE}
+actorcounts <- as.data.frame(table(finaldata$SourceActorFull))
+targetactorcounts <- as.data.frame(table(finaldata$TargetActorFull))
+actorcounts <- merge(actorcounts, targetactorcounts, by="Var1", all.x=TRUE)
+names(actorcounts) <- c("ActorFull", "SourceFreq", "TargetFreq")
+actorcounts <- actorcounts[order(-actorcounts$SourceFreq),][1:30,]
+actorcounts
+```
+
+- Distribution of Source and Target Events by Actor (between Entities - usually countries). Including only the top 30 Source Actors. 
+
+```{r, warning=FALSE, error=FALSE}
+entityactorcounts <- as.data.frame(table(finaldata$SourceActorEntity))
+targetactorcounts <- as.data.frame(table(finaldata$TargetActorEntity))
+entityactorcounts <- merge(entityactorcounts, targetactorcounts, by="Var1", all.x=TRUE)
+names(entityactorcounts) <- c("ActorEntity", "SourceFreq", "TargetFreq")
+entityactorcounts <- entityactorcounts[order(-entityactorcounts$SourceFreq),]
+entityactorcounts
+```
+
+- Distribution of Source and Target Events by Actor (between Roles). Including only the top 30 Source Actors.  
+
+```{r, warning=FALSE, error=FALSE}
+roleactorcounts <- as.data.frame(table(finaldata$SourceActorRole))
+targetactorcounts <- as.data.frame(table(finaldata$TargetActorRole))
+roleactorcounts <- merge(roleactorcounts, targetactorcounts, by="Var1", all.x=TRUE)
+names(roleactorcounts) <- c("ActorRole", "SourceFreq", "TargetFreq")
+roleactorcounts <- roleactorcounts[order(-roleactorcounts$Freq),]
+roleactorcounts
+```
+
+- Distribution of Source and Target Events by Actor (between Attributes). Including only the top 30 Source Actors.   
+```{r, warning=FALSE, error=FALSE, echo=FALSE}
+attributeactorcounts <- as.data.frame(table(finaldata$SourceActorAttribute))
+targetactorcounts <- as.data.frame(table(finaldata$TargetActorAttribute))
+attributeactorcounts <- merge(attributeactorcounts, targetactorcounts, by="Var1", all.x=TRUE)
+names(attributeactorcounts) <- c("ActorAttributes", "SourceFreq", "TargetFreq")
+attributeactorcounts <- attributeactorcounts[order(-attributeactorcounts$SourceFreq),][1:30,]
+attributeactorcounts
+#it looks like we have some miscoding or double coding as some roles such as GOV and BUS are appearing as attributes
+```
+
+- Distribution of Source (Attributes only) and Target (Full) Events by Actor . Including only the top 30 Source Actors. 
+
+```{r, warning=FALSE, error=FALSE, echo=FALSE}
+attributebyfullactorcounts <- as.data.frame(table(finaldata$SourceActorAttribute))
+targetactorcounts <- as.data.frame(table(finaldata$TargetActorFull))
+attributebyfullactorcounts <- merge(attributebyfullactorcounts, targetactorcounts, by="Var1", all.x=TRUE)
+names(attributebyfullactorcounts) <- c("ActorAttribute", "SourceFreq", "TargetFreq")
+attributebyfullactorcounts<-attributebyfullactorcounts[order(-attributebyfullactorcounts$SourceFreq),][1:30,]
+attributebyfullactorcounts
+#many of these seem to be always sources, never targets
+```
+
+4.3 EventCode
+```{r, warning=FALSE, error=FALSE}
+uniqueeventcode<-unique(finaldata$EventCode)
+length(uniqueeventcode)
+table(finaldata$EventCode)
+```
+There are 345 Eventcodes
+
+4.4 EventRootCode
+```{r, warning=FALSE, error=FALSE}
+class(finaldata$EventRootCode)
+finaldata$EventRootCode<-as.character(finaldata$EventRootCode)
+class(finaldata$EventRootCode)
+
+finaldata$EventRootCode[finaldata$EventRootCode==1]<-"Make Public Statement"
+finaldata$EventRootCode[finaldata$EventRootCode==2]<-"Appeal"
+finaldata$EventRootCode[finaldata$EventRootCode==3]<-"Express Intent to Cooperate"
+finaldata$EventRootCode[finaldata$EventRootCode==4]<-"Consult"
+finaldata$EventRootCode[finaldata$EventRootCode==5]<-"Engage in Diplomatic Cooperation"
+finaldata$EventRootCode[finaldata$EventRootCode==6]<-"Engage in Material Cooperation"
+finaldata$EventRootCode[finaldata$EventRootCode==7]<-"Provide Aid"
+finaldata$EventRootCode[finaldata$EventRootCode==8]<-"Yield"
+finaldata$EventRootCode[finaldata$EventRootCode==9]<-"Investigate"
+finaldata$EventRootCode[finaldata$EventRootCode==10]<-"Demand"
+finaldata$EventRootCode[finaldata$EventRootCode==11]<-"Disapprove"
+finaldata$EventRootCode[finaldata$EventRootCode==12]<-"Reject"
+finaldata$EventRootCode[finaldata$EventRootCode==13]<-"Threaten"
+finaldata$EventRootCode[finaldata$EventRootCode==14]<-"Protest"
+finaldata$EventRootCode[finaldata$EventRootCode==15]<-"Exhibit Force Posture"
+finaldata$EventRootCode[finaldata$EventRootCode==16]<-"Reduce Relations"
+finaldata$EventRootCode[finaldata$EventRootCode==17]<-"Coerce"
+finaldata$EventRootCode[finaldata$EventRootCode==18]<-"Assault"
+finaldata$EventRootCode[finaldata$EventRootCode==19]<-"Fight"
+finaldata$EventRootCode[finaldata$EventRootCode==20]<-"Use Uconventional Mass Violence"
+table(finaldata$EventRootCode)
+eventrootcodecount<- ggplot(data=finaldata, aes(x=EventRootCode)) + geom_bar(stat="bin") + theme_classic()+ theme(axis.text.x  = element_text(angle=90, vjust=0.5))
+eventrootcodecount
+
+```
+
+4.5 Quadclass
+```{r, warning=FALSE, error=FALSE}
+table(finaldata$QuadClass)
+class(finaldata$QuadClass)
+finaldata$QuadClass<-as.character(finaldata$QuadClass)
+finaldata$QuadClass[finaldata$QuadClass==0]<-"Neutral"
+finaldata$QuadClass[finaldata$QuadClass==1]<-"Verbal Cooperation"
+finaldata$QuadClass[finaldata$QuadClass==2]<-"Material Cooperation"
+finaldata$QuadClass[finaldata$QuadClass==3]<-"Verbal Conflict"
+finaldata$QuadClass[finaldata$QuadClass==4]<-"Material Conflict"
+
+quadclasscount<- ggplot(data=finaldata, aes(x=QuadClass)) + geom_bar(stat="bin") + theme_classic()+ theme(axis.text.x  = element_text(angle=90, vjust=0.5))
+quadclasscount
+```
+
+4.6 GoldsteinScore
+
+```{r, warning=FALSE, error=FALSE}
+class(finaldata$GoldsteinScore)
+summary(finaldata$GoldsteinScore)
+
+```
+
+4.7 Issues
+
+```{r, warning=FALSE, error=FALSE}
+table(finaldata$Issues)
+issues <- unlist(str_split(finaldata$Issues, ";"))
+issues <- str_replace_all(issues, ",[0-9]+", "")
+issuestab<- as.data.frame(table(issues))
+issuescounts <- issuestab[order(-issuestab$Freq),]
+issuescounts
+```
+
+4.8 News Sources
+```{r, warning=FALSE, error=FALSE}
+table(finaldata$NewsSources)
+Newss <- unlist(str_split(finaldata$NewsSources, ";"))
+Newss <- str_replace_all(Newss, ",[0-9]+", "")
+newstab<- as.data.frame(table(Newss))
+newscounts <- newstab[order(-newstab$Freq),]
+newscounts
+```
+
+
+ 
